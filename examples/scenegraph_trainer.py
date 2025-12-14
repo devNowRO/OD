@@ -12,6 +12,10 @@ from roadscene2vec.data.dataset import SceneGraphDataset
 from torch_geometric.data import Data, DataLoader, DataListLoader
 from roadscene2vec.learning.util.metrics import get_metrics, log_wandb, log_wandb_transfer_learning 
 
+#  scene_graph_dataset  = SceneGraphDataset()
+#         scene_graph_dataset.dataset_save_path = self.config.location_data["input_path"]
+#         # self.scene_graph_dataset = scene_graph_dataset.load()  
+
 
 class Scenegraph_Trainer(Trainer):
     def __init__(self, config, wandb_a = None):
