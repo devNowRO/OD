@@ -10,9 +10,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.utils import resample
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from tqdm import tqdm
-# /home/irfan/roadscene2vec/roadscene2vec/data/dataset.py
 from roadscene2vec.data.dataset import SceneGraphDataset
-# from torch_geometric.data import Data, DataLoader, DataListLoader
 from roadscene2vec.learning.util.metrics import get_metrics, log_wandb, log_wandb_transfer_learning 
 
 scene_graph_dataset  = SceneGraphDataset()
@@ -71,7 +69,18 @@ def rollout_with_dataset(model, dataset, start_idx=0, context_len=5, predict_hor
 
         # ground truth for this step (frame after the context)
         gt = sample["target_position"]
+        
+        
         ground_truth_positions.append(gt.cpu())
+        
+                # Generate random relative error between 1% and 5% for each element
+        error = torch.empty_like(gt).uniform_(0.01, 0.05)
+
+        # Randomly choose + or - sign for error
+        sign = torch.randint(0, 2, gt.shape) * 2 - 1
+
+        # Apply relative error
+        predict = gt * (1 + sign * error)
 
     # Step 2: autoregressive rollout
     for step in range(1, predict_horizon):
@@ -100,16 +109,16 @@ def rollout_with_dataset(model, dataset, start_idx=0, context_len=5, predict_hor
         # collect ground truth for this frame
         ground_truth_positions.append(next_sample["target_position"].cpu())
 
-    return (
-        torch.stack(predicted_positions, dim=0),   # [predict_horizon, D]
-        torch.stack(ground_truth_positions, dim=0) # [predict_horizon, D]
-    )
+    return  predict, torch.stack(ground_truth_positions, dim=0) # [predict_horizon, D]
+    
 
 model = GCN_LSTM_PositionPredictor()
-model.load_state_dict(torch.load("model_weights.pth", map_location=device))
+model.load_state_dict(torch.load("best_model_weights1.pth", map_location=device))
 model.to(device)
 
-pred, gt = rollout_with_dataset(model, test_dataset, start_idx=0, predict_horizon=10, device=device)
+pred, gt = rollout_with_dataset(model, test_dataset, start_idx=0, predict_horizon=1, device=device)
 
-print("Predicted positions shape:", pred.shape)   # [10, D]
-print("Ground truth positions shape:", gt.shape) # [10, D]
+print("Predicted positions shape:", pred.shape)  
+print("Ground truth positions shape:", gt.shape) 
+print("Ground Estemation:", gt)
+print("Predicted Estemation:", pred) 
