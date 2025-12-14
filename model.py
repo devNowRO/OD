@@ -76,7 +76,7 @@ def clean_edges(edge_index):
     return edge_index[:, mask]
 
 class GCN_LSTM_PositionPredictor(nn.Module):
-    def __init__(self, in_dim=9, gcn_hidden_dim=32, lstm_hidden_dim=64, mlp_hidden_dim=64):
+    def __init__(self, in_dim=9, gcn_hidden_dim=512, lstm_hidden_dim=650, mlp_hidden_dim=650):
         super().__init__()
 
         # --- Graph Convolutions ---
@@ -92,6 +92,8 @@ class GCN_LSTM_PositionPredictor(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(lstm_hidden_dim, mlp_hidden_dim),
             nn.ReLU(),
+            nn.Linear(lstm_hidden_dim, mlp_hidden_dim),
+            nn.ReLU(),
             nn.Linear(mlp_hidden_dim, 3)
         )
 
@@ -105,24 +107,8 @@ class GCN_LSTM_PositionPredictor(nn.Module):
         graph_embeds = []
 
         for t in range(T):
-            # Collect all graphs at time t into a batch
             data_list = []
-            # for b in range(B):
-            #     x = node_feats_seq[b, t]                     # [N, F]
-            #     edge_index = edge_index_seq[b, t].long()     # [2, E]
-            #     data_list.append(Data(x=x, edge_index=edge_index))
-            # data_list = []
-            # for b in range(B):
-            #     x = node_feats_seq[b, t]                     # [N, F]
-            #     edge_index = edge_index_seq[b, t].long()
-
-            #     # ✅ Ensure edges are valid
-            #     if edge_index.max() >= x.size(0):
-            #         print(f"[WARN] Invalid edge index: max={edge_index.max()} >= num_nodes={x.size(0)}")
-            #         mask = edge_index < x.size(0)
-            #         edge_index = edge_index[:, mask.all(dim=0)]  # remove bad edges
-
-            #     data_list.append(Data(x=x, edge_index=edge_index))
+        
             for b in range(B):
                 x = node_feats_seq[b, t]                   # [N, F]
                 edge_index = edge_index_seq[b, t].long()

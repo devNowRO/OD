@@ -6,9 +6,7 @@ location_data:
 
 relation_extraction_settings:
   frames_limit: null #extract scenegraphs for 1 frame every n frames per sequence subdirectory. currently only functional for image based extraction. Options: null(None), Integer n
-  # ACTOR_NAMES: ["ego_car", 'car','moto','bicycle','ped','lane','light','sign', 'road'] #types of actors that can be found in data sequences. ego_car actor represents the car from whose perspective we are viewing the road. this array's structure is also used for one-hot encoding when creating node embeddings, "ego_car", "lane", "road" are assumed to always be in this list.
-  # RELATION_NAMES: ['isIn', 'inDFrontOf', 'inSFrontOf', 'atDRearOf', 'atSRearOf', 'toLeftOf', 'toRightOf', 'near_coll', 'super_near' , 'very_near', 'near' ,'visible'] #types of relations to extract
-  ACTOR_NAMES: ["ego_car", 'object_1_','object_2_','object_3_','object_4_','lane','light','sign', 'road'] #types of actors that can be found in data sequences. ego_car actor represents the car from whose perspective we are viewing the road. this array's structure is also used for one-hot encoding when creating node embeddings, "ego_car", "lane", "road" are assumed to always be in this list.
+  ACTOR_NAMES: ["ego_car", 'Object_ID_','Object_ID_','Object_ID_','Object_ID_','lane','light','sign', 'road'] #types of actors that can be found in data sequences. ego_car actor represents the car from whose perspective we are viewing the road. this array's structure is also used for one-hot encoding when creating node embeddings, "ego_car", "lane", "road" are assumed to always be in this list.
   RELATION_NAMES: ['isIn', 'inDFrontOf', 'inSFrontOf', 'atDRearOf', 'atSRearOf', 'toLeftOf', 'toRightOf', 'near_coll', 'super_near' , 'very_near', 'near' ,'visible'] #types of relations to extract
   #actor types specified in proximity_relation_list, directional_relation_list must first be defined in ACTOR_NAMES
   #relations specified in PROXIMITY_THRESHOLDS, DIRECTIONAL_THRESHOLDS, RELATION_COLORS must first be defined in RELATION_NAMES
