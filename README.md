@@ -67,6 +67,25 @@ To run this use case, cd into the examples folder and run the corresponding modu
 $ cd examples
 $ python scene_graph_generation.py
 ```
+# Trajectory Estemation
+
+## Training the Model
+
+Run the following command to train the position estimation model:
+
+```bash
+python trainingPipiline.py 
+
+```
+---
+
+## Position Estimation (Trajectory Inference)
+
+After training, run trajectory-based position estimation:
+
+```bash
+python trajectory.py
+```
 
 
 
