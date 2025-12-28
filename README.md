@@ -88,26 +88,3 @@ python trajectory.py
 ```
 
 
-
-NOTE: If you would like to use a new image dataset, we recommend generating a new birds-eye view transformation (bev.json) using the instructions provided here:
-
-
-# Trajectory Estemation
-
-## Training the Model
-
-Run the following command to train the position estimation model:
-
-```bash
-python trainingPipiline.py 
-
-```
----
-
-## Position Estimation (Trajectory Inference)
-
-After training, run trajectory-based position estimation:
-
-```bash
-python trajectory.py
-```
