@@ -133,7 +133,7 @@ def rollout_with_dataset(ground_truth,model, dataset, start_idx=0, context_len=5
 
         # predict next
         with torch.no_grad():
-            pred = model(node_features_seq, edge_index_seq, prev_positions_seq)
+            pred = model(ground_truth,node_features_seq, edge_index_seq, prev_positions_seq)
         predicted_positions.append(pred.squeeze(0).cpu())
 
         # collect ground truth for this frame
