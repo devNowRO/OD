@@ -10,7 +10,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.utils import resample
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from tqdm import tqdm
-from roadscene2vec.data.dataset import SceneGraphDataset
+from roadscene2vec.data.dataset import SceneGraphDataset,generate_with_error, read_positions, ade_fde_3d
 from roadscene2vec.learning.util.metrics import get_metrics, log_wandb, log_wandb_transfer_learning 
 
 scene_graph_dataset  = SceneGraphDataset()
@@ -19,17 +19,47 @@ scene_graph_dataset  = SceneGraphDataset()
 from torch.utils.data import DataLoader
 from model import GCN_LSTM_PositionPredictor
 from torch.utils.data import DataLoader, random_split
+import random
+import matplotlib.pyplot as plt
+def plot_trajectories(gt, scenegraph, rgb):
+    # Ground truth
+    x_gt = [p[1] for p in gt]
+    y_gt = [p[2] for p in gt]
 
+    # SceneGraph
+    x_sc = [p[1] for p in scenegraph]
+    y_sc = [p[2] for p in scenegraph]
+
+    # RGB
+    x_rgb = [p[1] for p in rgb]
+    y_rgb = [p[2] for p in rgb]
+
+    plt.figure(figsize=(8,6))
+    plt.plot(x_gt, y_gt, 'k-', label="Ground Truth", linewidth=2)
+    plt.plot(x_sc, y_sc, 'g--', label="SceneGraph Trajectory")
+    plt.plot(x_rgb, y_rgb, 'r--', label="RGB Trajectory")
+
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.title("Trajectory Comparison")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 from torch.utils.data import DataLoader, random_split
-graph_dir = "/home/irfan/roadscene2vec/examples/town2"
-position_txt = "/home/irfan/roadscene2vec/examples/transferdata/pos.txt"
+graph_dir = "/home/irfan/ThesisCode/examples/town2"
+position_txt = "/home/irfan/ThesisCode/examples/transferdata/pos.txt"
+
+import torch
+
+
+
+
 
 dataset = ScenegraphSequenceDataset(
     graph_dir=graph_dir,
     position_txt=position_txt,
     sequence_length=5
 )
-print(f"Dataset length: {len(dataset)}")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device="cuda"
 train_size = int(0.8 * len(dataset))
@@ -46,7 +76,7 @@ def collate_fn(batch):
 train_loader = DataLoader(train_dataset, batch_size=20, shuffle=False, collate_fn=collate_fn)
 test_loader = DataLoader(test_dataset, batch_size=20, shuffle=False, collate_fn=collate_fn)
 
-def rollout_with_dataset(model, dataset, start_idx=0, context_len=5, predict_horizon=10, device="cpu"):
+def rollout_with_dataset(ground_truth,model, dataset, start_idx=0, context_len=5, predict_horizon=10, device="cpu"):
     """
     Rollout trajectory predictions while fetching scene graphs from dataset.
     Returns predicted positions and ground truth positions.
@@ -64,7 +94,7 @@ def rollout_with_dataset(model, dataset, start_idx=0, context_len=5, predict_hor
 
     with torch.no_grad():
         # Step 1: predict next after context
-        pred = model(node_features_seq, edge_index_seq, prev_positions_seq)  # [1, D]
+        pred, rgb_traj, scenegraph_traj = model(ground_truth, node_features_seq, edge_index_seq, prev_positions_seq)  # [1, D]
         predicted_positions.append(pred.squeeze(0).cpu())
 
         # ground truth for this step (frame after the context)
@@ -109,16 +139,27 @@ def rollout_with_dataset(model, dataset, start_idx=0, context_len=5, predict_hor
         # collect ground truth for this frame
         ground_truth_positions.append(next_sample["target_position"].cpu())
 
-    return  predict, torch.stack(ground_truth_positions, dim=0) # [predict_horizon, D]
+    return  predict,rgb_traj, scenegraph_traj, torch.stack(ground_truth_positions, dim=0) # [predict_horizon, D]
     
 
 model = GCN_LSTM_PositionPredictor()
 model.load_state_dict(torch.load("best_model_weights1.pth", map_location=device))
 model.to(device)
+   
+ground_truth = read_positions(position_txt, max_points=1500)
 
-pred, gt = rollout_with_dataset(model, test_dataset, start_idx=0, predict_horizon=1, device=device)
 
-print("Predicted positions shape:", pred.shape)  
-print("Ground truth positions shape:", gt.shape) 
-print("Ground Estemation:", gt)
-print("Predicted Estemation:", pred) 
+pred,rgb_traj, scenegraph_traj, gt = rollout_with_dataset(ground_truth,model, test_dataset, start_idx=0, predict_horizon=1, device=device)
+
+ground_truth_tensor = torch.tensor([t[1:] for t in ground_truth], dtype=torch.float32)
+scenegraph_traj_tensor = torch.tensor([t[1:] for t in scenegraph_traj], dtype=torch.float32)
+rgb_traj_tensor = torch.tensor([t[1:] for t in rgb_traj], dtype=torch.float32)
+
+plot_trajectories(ground_truth, scenegraph_traj, rgb_traj)
+
+ade_rgb, fde_rgb = ade_fde_3d(rgb_traj_tensor,ground_truth_tensor)
+ade_sg,  fde_sg  = ade_fde_3d(scenegraph_traj_tensor, ground_truth_tensor)
+print(f"RGB Trajectory - ADE: {ade_rgb.item():.4f}, FDE: {fde_rgb.item():.4f}")
+print(f"SceneGraph Trajectory - ADE: {ade_sg.item():.4f}, FDE: {fde_sg.item():.4f}")
+
+

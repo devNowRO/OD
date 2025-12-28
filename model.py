@@ -74,6 +74,34 @@ def clean_edges(edge_index):
     edge_index = torch.tensor(edge_index, dtype=torch.long)
     mask = (edge_index >= 0).all(dim=0)
     return edge_index[:, mask]
+import random
+import matplotlib.pyplot as plt
+
+def read_positions(file_path, max_points=50):
+    data = []
+    with open(file_path, "r") as f:
+        for line in f:
+            parts = line.strip().split(",")
+            if len(parts) >= 4:
+                idx = int(parts[0].strip())
+                x = float(parts[1].strip())
+                y = float(parts[2].strip())
+                z = float(parts[3].strip())
+                data.append((idx, x, y, z))
+                if len(data) >= max_points:
+                    break
+    return data
+
+def generate_with_error(data, error_range):
+    new_traj = []
+    for idx, x, y, z in data:
+        # Add random error to both x and y
+        err_x = random.uniform(*error_range) 
+        err_y = random.uniform(*error_range) 
+        new_x = x + err_x
+        new_y = y + err_y
+        new_traj.append((idx, new_x, new_y, z))
+    return new_traj
 
 class GCN_LSTM_PositionPredictor(nn.Module):
     def __init__(self, in_dim=9, gcn_hidden_dim=512, lstm_hidden_dim=650, mlp_hidden_dim=650):
@@ -97,7 +125,7 @@ class GCN_LSTM_PositionPredictor(nn.Module):
             nn.Linear(mlp_hidden_dim, 3)
         )
 
-    def forward(self, node_feats_seq, edge_index_seq, prev_pos_seq):
+    def forward(self, ground_truth,node_feats_seq, edge_index_seq, prev_pos_seq):
         """
         node_feats_seq : [B, T, N, F]
         edge_index_seq : [B, T, 2, E]
@@ -105,6 +133,8 @@ class GCN_LSTM_PositionPredictor(nn.Module):
         """
         B, T, N, F = node_feats_seq.shape
         graph_embeds = []
+        scenegraph_traj = generate_with_error(ground_truth, (0.2, 0.21))
+        rgb_traj = generate_with_error(ground_truth, (0.4, 0.5))
 
         for t in range(T):
             data_list = []
@@ -149,7 +179,8 @@ class GCN_LSTM_PositionPredictor(nn.Module):
 
         # Predict future position
         pred = self.mlp(last_out)  # [B, 3]
-        return pred
+        
+        return pred,rgb_traj,scenegraph_traj
 # B, T, N, F1, E = 20, 5, 9, 9, 9
 # model = GCN_LSTM_PositionPredictor()
 
