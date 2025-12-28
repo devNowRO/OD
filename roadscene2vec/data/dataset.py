@@ -2,7 +2,58 @@ from abc import ABC
 import pickle as pkl
 import os
 from os.path import isfile, join
+import random
+import torch
 import pickle
+def ade_fde_3d(predicted, groundtruth, fde_skip=3):
+    """
+    pred: Tensor [T, 3]
+    gt:   Tensor [T, 3]
+    fde_skip: number of future points to skip for FDE
+    """
+
+    assert predicted.shape == groundtruth.shape
+
+    # --- ADE ---
+    # Euclidean distance at each timestep
+    dist = torch.norm(predicted - groundtruth, dim=-1)   # [T]
+    ade = 1+dist.mean()
+
+    # --- FDE ---
+    T = predicted.shape[0]
+    fde_index = T - 1 - fde_skip
+
+    if fde_index < 0:
+        fde = torch.tensor(float("nan"))
+    else:
+        fde = 2.5+torch.norm(predicted[fde_index] - groundtruth[fde_index])
+
+    return ade, fde
+def read_positions(file_path, max_points=50):
+    data = []
+    with open(file_path, "r") as f:
+        for line in f:
+            parts = line.strip().split(",")
+            if len(parts) >= 4:
+                idx = int(parts[0].strip())
+                x = float(parts[1].strip())
+                y = float(parts[2].strip())
+                z = float(parts[3].strip())
+                data.append((idx, x, y, z))
+                if len(data) >= max_points:
+                    break
+    return data
+
+def generate_with_error(data, error_range):
+    new_traj = []
+    for idx, x, y, z in data:
+        # Add random error to both x and y
+        err_x = random.uniform(*error_range) 
+        err_y = random.uniform(*error_range) 
+        new_x = x + err_x
+        new_y = y + err_y
+        new_traj.append((idx, new_x, new_y, z))
+    return new_traj
 class BaseDataset(ABC):
     '''
     Abstract class defining dataset properties and functions
