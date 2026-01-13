@@ -10,7 +10,7 @@ https://www.anaconda.com/products/individual
 If you are using a GPU, install the corresponding CUDA toolkit for your hardware from Nvidia here:
 https://developer.nvidia.com/cuda-toolkit
 
-Next, create a conda virtual environment running Python 3.6:
+Next, create a conda virtual environment running Python 3.9:
 ```shell
 conda create --name av python=3.9
 ```
